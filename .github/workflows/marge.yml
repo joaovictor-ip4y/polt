@@ -42,3 +42,10 @@ jobs:
           gh pr merge $PR_NUMBER --merge
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      - name: Notificar no Slack (Erro)
+        if: failure()
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "Ocorreu um erro de Hotfix ao tentar mesclar o PR #${{ env.PR_NUMBER }} \n*Link:* #${{ env.PR_URL }}"
+          }' ${{ secrets.SLACK }}

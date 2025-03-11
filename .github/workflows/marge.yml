@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [closed]
     branches:
-      - master
+      - main
 
 permissions:
   contents: write
@@ -28,9 +28,9 @@ jobs:
         run: |
           PR_URL=$(gh pr create \
             --base dev \
-            --head master \
+            --head main \
             --title "Merge back hotfix para dev" \
-            --body "Sincronizando as correções da master para dev.")
+            --body "Sincronizando as correções da main para dev.")
           PR_NUMBER=$(echo $PR_URL | grep -oE '[0-9]+$')
           echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
           echo "PR_URL=$PR_URL" >> $GITHUB_ENV

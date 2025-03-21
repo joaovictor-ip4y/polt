@@ -43,7 +43,7 @@ jobs:
           gh pr merge $PR_NUMBER --merge
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-
+          
       - name: Notificar por E-mail (Erro)
         if: failure()
         uses: dawidd6/action-send-mail@v3

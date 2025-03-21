@@ -44,6 +44,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
 
+      - name: Notificar por E-mail (Sucesso)
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: '✅ Merge Back Hotfix realizado com sucesso'
+          body: |
+            O Merge Back do Hotfix foi concluído com sucesso. 
+            PR: #${{ env.PR_NUMBER }}
+            Link: ${{ env.PR_URL }}
+          to: 'joao.victor@ip4y.com.br'
+          from: 'testegitip@gmail.com'
+
       - name: Notificar por E-mail (Erro)
         if: failure()
         uses: dawidd6/action-send-mail@v3
@@ -52,7 +68,7 @@ jobs:
           server_port: 587
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: 'Erro ao tentar mesclar o PR #${{ env.PR_NUMBER }}'
+          subject: '❌ Erro ao tentar mesclar o PR #${{ env.PR_NUMBER }}'
           body: |
             Ocorreu um erro ao tentar mesclar o PR #${{ env.PR_NUMBER }}.
             Link: ${{ env.PR_URL }}

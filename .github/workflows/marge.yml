@@ -43,10 +43,18 @@ jobs:
           gh pr merge $PR_NUMBER --merge
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-
-      - name: Notificar no Slack (Erro)
+          
+      - name: Notificar por E-mail (Erro)
         if: failure()
-        run: |
-          curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Ocorreu um erro de Hotfix ao tentar mesclar o PR #${{ env.PR_NUMBER }} \n*Link:* #${{ env.PR_URL }}"
-          }' ${{ secrets.SLACK }}
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: 'Erro ao tentar mesclar o PR #${{ env.PR_NUMBER }}'
+          body: |
+            Ocorreu um erro ao tentar mesclar o PR #${{ env.PR_NUMBER }}.
+            Link: ${{ env.PR_URL }}
+          to: 'joao.victor@ip4y.com.br'
+          from: 'testegitip@gmail.com'

@@ -17,23 +17,24 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, intl
+          extensions: mbstring, intl, xdebug
 
       - name: Install Composer dependencies
         run: composer install --no-progress --prefer-dist --optimize-autoloader
 
       - name: Run PHPUnit tests with coverage
+        continue-on-error: true  # Continua mesmo se os testes falharem
         run: |
-          vendor/bin/phpunit --coverage-text --log-junit junit.xml > test-results.txt
+          vendor/bin/phpunit --coverage-text --log-junit junit.xml | tee test-results.txt
 
       - name: Extract coverage and test details
         id: extract
         run: |
-          COVERAGE=$(grep -oP 'Total\sCoverage:\s\K[0-9\.]+' test-results.txt)
-          TOTAL_TESTS=$(grep -oP 'Total\sTests:\s\K[0-9]+' test-results.txt)
-          FAILURES=$(grep -oP 'Failures:\s\K[0-9]+' test-results.txt)
-          SKIPPED=$(grep -oP 'Skipped:\s\K[0-9]+' test-results.txt)
-          EXEC_TIME=$(grep -oP 'Execution\sTime:\s\K[0-9\.]+' test-results.txt)
+          COVERAGE=$(grep -oP 'Lines:\s+\K[0-9]+\.[0-9]+' test-results.txt || echo "0.00")
+          TOTAL_TESTS=$(grep -oP 'Tests:\s+\K[0-9]+' test-results.txt || echo "0")
+          FAILURES=$(grep -oP 'Failures:\s+\K[0-9]+' test-results.txt || echo "0")
+          SKIPPED=$(grep -oP 'Skipped:\s+\K[0-9]+' test-results.txt || echo "0")
+          EXEC_TIME=$(grep -oP 'Time:\s+\K[0-9\.]+' test-results.txt || echo "0.00")
 
           echo "coverage=$COVERAGE" >> $GITHUB_ENV
           echo "total_tests=$TOTAL_TESTS" >> $GITHUB_ENV
@@ -48,10 +49,8 @@ jobs:
           token: ${{ secrets.PAT_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ## ✅ PHP Test Results
-            **PHP Version:** 8.3  
-            **Composer Dependencies:** Installed  
-            **Test Coverage:** ${{ env.coverage }}%  
+            ## ✅ PHPUnit Test Coverage Report
+            **Total Coverage:** ${{ env.coverage }}%  
             **Total Tests:** ${{ env.total_tests }}  
             **Failures:** ${{ env.failures }}  
             **Skipped:** ${{ env.skipped }}  

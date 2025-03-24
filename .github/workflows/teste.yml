@@ -3,7 +3,6 @@ name: PHP Tests
 on:
   pull_request:
     branches:
-      - main
 
 jobs:
   test:
@@ -17,11 +16,15 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '7.4'
-          extensions: mbstring, intl, apcu
-          ini-values: post_max_size=256M, upload_max_filesize=256M
-          coverage: xdebug
+          extensions: mbstring, intl
 
-      - name: Install dependencies
+      - name: Install Composer
+        run: |
+          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+          php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+          php -r "unlink('composer-setup.php');"
+
+      - name: Install Composer dependencies
         run: composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader
 
       - name: Run tests
@@ -46,6 +49,3 @@ jobs:
             ## PHP Test Results
             The tests have completed.
             You can find the detailed test results in the [Artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).
-            ```
-            ${{ steps.test.outputs.test-results }}
-            ```

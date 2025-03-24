@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="" tests="1" assertions="1" errors="0" warnings="0" failures="0" skipped="0" time="0.001731">
+    <testsuite name="My Test Suite" tests="1" assertions="1" errors="0" warnings="0" failures="0" skipped="0" time="0.001731">
+      <testsuite name="CalculatorTest" file="/home/joaovictor/teste/polt/tests/CalculatorTest.php" tests="1" assertions="1" errors="0" warnings="0" failures="0" skipped="0" time="0.001731">
+        <testcase name="testAdd" class="CalculatorTest" classname="CalculatorTest" file="/home/joaovictor/teste/polt/tests/CalculatorTest.php" line="7" assertions="1" time="0.001731"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

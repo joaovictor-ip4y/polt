@@ -22,18 +22,13 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-progress --prefer-dist --optimize-autoloader
 
-      - name: Run tests
+      - name: Run PHPUnit tests
         run: |
-          vendor/bin/phpunit --testdox --log-junit junit.xml | tee test-results.txt
+          echo '```' > test-results.txt
+          vendor/bin/phpunit --testdox >> test-results.txt
+          echo '```' >> test-results.txt
 
-      - name: Archive test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: junit.xml
-
-      - name: Create or update comment
+      - name: Create or update comment with test results
         if: always()
         uses: peter-evans/create-or-update-comment@v3
         with:
@@ -44,7 +39,4 @@ jobs:
             **PHP Version:** 8.3  
             **Composer Dependencies:** Installed  
             **Test Summary:**  
-            ```
             $(cat test-results.txt)
-            ```
-            🔍 Detalhes completos podem ser encontrados nos **[Artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})**.

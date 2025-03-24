@@ -22,11 +22,24 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-progress --prefer-dist --optimize-autoloader
 
-      - name: Run PHPUnit tests
+      - name: Run PHPUnit tests with coverage
         run: |
-          echo '```' > test-results.txt
-          vendor/bin/phpunit --testdox >> test-results.txt
-          echo '```' >> test-results.txt
+          vendor/bin/phpunit --coverage-text --log-junit junit.xml > test-results.txt
+
+      - name: Extract coverage and test details
+        id: extract
+        run: |
+          COVERAGE=$(grep -oP 'Total\sCoverage:\s\K[0-9\.]+' test-results.txt)
+          TOTAL_TESTS=$(grep -oP 'Total\sTests:\s\K[0-9]+' test-results.txt)
+          FAILURES=$(grep -oP 'Failures:\s\K[0-9]+' test-results.txt)
+          SKIPPED=$(grep -oP 'Skipped:\s\K[0-9]+' test-results.txt)
+          EXEC_TIME=$(grep -oP 'Execution\sTime:\s\K[0-9\.]+' test-results.txt)
+
+          echo "coverage=$COVERAGE" >> $GITHUB_ENV
+          echo "total_tests=$TOTAL_TESTS" >> $GITHUB_ENV
+          echo "failures=$FAILURES" >> $GITHUB_ENV
+          echo "skipped=$SKIPPED" >> $GITHUB_ENV
+          echo "exec_time=$EXEC_TIME" >> $GITHUB_ENV
 
       - name: Create or update comment with test results
         if: always()
@@ -38,5 +51,8 @@ jobs:
             ## ✅ PHP Test Results
             **PHP Version:** 8.3  
             **Composer Dependencies:** Installed  
-            **Test Summary:**  
-            $(cat test-results.txt)
+            **Test Coverage:** ${{ env.coverage }}%  
+            **Total Tests:** ${{ env.total_tests }}  
+            **Failures:** ${{ env.failures }}  
+            **Skipped:** ${{ env.skipped }}  
+            **Execution Time:** ${{ env.exec_time }} seconds

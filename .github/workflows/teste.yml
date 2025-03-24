@@ -23,9 +23,12 @@ jobs:
         run: composer install --no-progress --prefer-dist --optimize-autoloader
 
       - name: Run PHPUnit tests with coverage
-        continue-on-error: true  # Continua mesmo se os testes falharem
+        continue-on-error: true
         run: |
           vendor/bin/phpunit --coverage-text --log-junit junit.xml | tee test-results.txt
+
+      - name: Debug PHPUnit output
+        run: cat test-results.txt
 
       - name: Extract coverage and test details
         id: extract
@@ -35,6 +38,12 @@ jobs:
           FAILURES=$(grep -oP 'Failures:\s+\K[0-9]+' test-results.txt || echo "0")
           SKIPPED=$(grep -oP 'Skipped:\s+\K[0-9]+' test-results.txt || echo "0")
           EXEC_TIME=$(grep -oP 'Time:\s+\K[0-9\.]+' test-results.txt || echo "0.00")
+
+          echo "Coverage: $COVERAGE%"
+          echo "Total Tests: $TOTAL_TESTS"
+          echo "Failures: $FAILURES"
+          echo "Skipped: $SKIPPED"
+          echo "Execution Time: $EXEC_TIME sec"
 
           echo "coverage=$COVERAGE" >> $GITHUB_ENV
           echo "total_tests=$TOTAL_TESTS" >> $GITHUB_ENV

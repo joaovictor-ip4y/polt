@@ -1,16 +1,21 @@
-FROM php:8.0-apache
+FROM php:8.0-cli
 
-# Instala as extensões necessárias
-RUN docker-php-ext-install pdo pdo_mysql
+# Instalar dependências necessárias
+RUN apt-get update && apt-get install -y \
+    git unzip zip && \
+    docker-php-ext-install pdo_mysql
 
-# Copia os arquivos do projeto para o diretório do contêiner
-COPY src/ /var/www/html/
+# Instalar Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Define o diretório de trabalho
-WORKDIR /var/www/html
+# Configurar o diretório de trabalho
+WORKDIR /app
 
-# Expondo a porta 80
-EXPOSE 80
+# Copiar arquivos do projeto
+COPY . .
 
-# Comando para iniciar o servidor Apache
-CMD ["apache2-foreground"]
+# Instalar dependências do Composer
+RUN composer install
+
+# Comando padrão
+CMD ["vendor/bin/phpunit", "--testdox"]

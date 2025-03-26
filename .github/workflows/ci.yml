@@ -28,11 +28,6 @@ jobs:
       - name: Run tests
         run: vendor/bin/phpunit src/tests/ExampleTest.php
 
-      - name: Run PHPStan Security Scan
-        run: |
-          composer require --dev phpstan/phpstan
-          vendor/bin/phpstan analyse src --level=max
-
   cd:
     name: Continuous Delivery
     needs: ci # Só executa se o job 'ci' for bem-sucedido

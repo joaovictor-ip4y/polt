@@ -34,58 +34,72 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Run tests with coverage
+        - name: Run PHPUnit tests with coverage
+        run: vendor/bin/phpunit --coverage-clover=coverage.xml --log-junit=junit.xml
+
+      - name: Extract coverage
+        id: coverage_check
         run: |
-          mkdir -p build/logs
-          vendor/bin/phpunit --coverage-clover build/logs/clover.xml | tee test-results.txt
+          COVERAGE=$(php -r "
+              libxml_use_internal_errors(true);
+              \$xml = simplexml_load_file('coverage.xml');
+              if (\$xml === false) {
+                  echo 'Erro ao carregar o arquivo coverage.xml';
+                  exit(1);
+              }
+              \$coverage = (\$xml->project->metrics['coveredelements'] / \$xml->project->metrics['elements']) * 100;
+              echo round(\$coverage, 2);
+          ")
+          echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
+          echo "Cobertura calculada: $COVERAGE%"
 
-      - name: Parse test results
+      - name: Parse junit.xml
+        id: parse_junit
         run: |
-          set -x
-          PASSED=$(grep -oP '(?<=OK \()\d+(?=\))' test-results.txt || echo 0)
-          FAILED=$(grep -oP '(?<=Failures: )\d+' test-results.txt || echo 0)
-          SKIPPED=$(grep -oP '(?<=Skipped: )\d+' test-results.txt || echo 0)
-          PENDING=0
-          OTHER=0
-          FLAKY=0
-          TOTAL=$((PASSED + FAILED + SKIPPED + PENDING + OTHER + FLAKY))
-          DURATION="00:00:$(grep -oP '(?<=Time: )\d+' test-results.txt || echo 10)"
+          TESTS=$(php -r "
+              \$xml = simplexml_load_file('junit.xml');
+              echo (int) \$xml->testsuite['tests'];
+          ")
+          FAILURES=$(php -r "
+              \$xml = simplexml_load_file('junit.xml');
+              echo (int) \$xml->testsuite['failures'];
+          ")
+          SKIPPED=$(php -r "
+              \$xml = simplexml_load_file('junit.xml');
+              echo (int) \$xml->testsuite['skipped'];
+          ")
+          TIME=$(php -r "
+              \$xml = simplexml_load_file('junit.xml');
+              echo (float) \$xml->testsuite['time'];
+          ")
 
-          echo "PASSED=$PASSED" >> $GITHUB_ENV
-          echo "FAILED=$FAILED" >> $GITHUB_ENV
-          echo "SKIPPED=$SKIPPED" >> $GITHUB_ENV
-          echo "PENDING=$PENDING" >> $GITHUB_ENV
-          echo "OTHER=$OTHER" >> $GITHUB_ENV
-          echo "FLAKY=$FLAKY" >> $GITHUB_ENV
-          echo "TOTAL=$TOTAL" >> $GITHUB_ENV
-          echo "DURATION=$DURATION" >> $GITHUB_ENV
+          echo "total_tests=$TESTS" >> $GITHUB_ENV
+          echo "failures=$FAILURES" >> $GITHUB_ENV
+          echo "skipped=$SKIPPED" >> $GITHUB_ENV
+          echo "execution_time=$TIME" >> $GITHUB_ENV
 
-      - name: Comment test results on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v6
+      - name: Post test results
+        uses: peter-evans/create-or-update-comment@v2
         with:
-          github-token: ${{ secrets.PAT_TOKEN }}
-          script: |
-            const summary = `
-            ### 🛠 Test Results - 🚀 [Run #${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          token: ${{ secrets.PAT_TOKEN }}
+          repository: ${{ github.repository }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ### PHPUnit Test Coverage Report 
 
-            **📊 Test Summary**
-            - ✅ **Passed:** ${{ env.PASSED }}
-            - ❌ **Failed:** ${{ env.FAILED }}
-            - ⚠️ **Skipped:** ${{ env.SKIPPED }}
-            - ⏳ **Pending:** ${{ env.PENDING }}
-            - 🔄 **Other:** ${{ env.OTHER }}
-            - 🔀 **Flaky:** ${{ env.FLAKY }}
-            - 🔢 **Total Tests:** ${{ env.TOTAL }}
-            - ⏱ **Duration:** ${{ env.DURATION }}
-            `;
+            - **Total Coverage:** ${{ env.COVERAGE }}%
+            - **Total Tests:** ${{ env.total_tests }}
+            - **Failures:** ${{ env.failures }}
+            - **Skipped:** ${{ env.skipped }}
+            - **Execution Time:** ${{ env.execution_time }} seconds
 
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-              body: summary
-            });
+      - name: Validate test failures
+        if: always() 
+        run: |
+          if [ ${{ env.failures }} -gt 0 ]; then
+              echo "Existem falhas nos testes: ${{ env.failures }}"
+              exit 1
+          fi
 
   cd:
     name: Continuous Delivery

@@ -6,8 +6,9 @@ use PHPUnit\Framework\TestCase;
 
 class ExampleTest extends TestCase
 {
-    public function testBasicFunctionality()
+    public function testBasicFunctionality(): void
     {
-        $this->assertTrue(true);
+        $value = 2 + 2; // Exemplo de lógica para teste
+        $this->assertTrue($value === 4, 'O valor deve ser igual a 4.');
     }
 }

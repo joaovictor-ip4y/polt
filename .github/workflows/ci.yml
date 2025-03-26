@@ -30,24 +30,19 @@ jobs:
           mkdir -p build/logs
           vendor/bin/phpunit --coverage-clover build/logs/clover.xml | tee test-results.txt
 
-      - name: Parse test results
-        run: |
-          PASSED=$(grep -oP '(?<=OK \()\d+(?=\))' test-results.txt || echo 0)
-          FAILED=$(grep -oP '(?<=Failures: )\d+' test-results.txt || echo 0)
-          SKIPPED=$(grep -oP '(?<=Skipped: )\d+' test-results.txt || echo 0)
-          PENDING=0
-          OTHER=0
-          FLAKY=0
-          TOTAL=$((PASSED + FAILED + SKIPPED + PENDING + OTHER + FLAKY))
-          DURATION="00:00:$(grep -oP '(?<=Time: )\d+' test-results.txt || echo 10)"
-
-          echo "TEST_SUMMARY=| Tests |   Passed |   Failed |   Skipped |   Pending |   Other |   Flaky |   Duration |
-          |--------|---------|--------|---------|---------|------|------|----------|
-          | $TOTAL | $PASSED | $FAILED | $SKIPPED | $PENDING | $OTHER | $FLAKY | $DURATION |
-
-          $(if [[ $FAILED -gt 0 ]]; then echo '  **Some tests failed!**'; else echo '  **All tests passed!**'; fi)
-          " >> $GITHUB_ENV
-
+          - name: Parse test results
+          run: |
+            PASSED=$(grep -oP '(?<=OK \()\d+(?=\))' test-results.txt || echo 0)
+            FAILED=$(grep -oP '(?<=Failures: )\d+' test-results.txt || echo 0)
+            SKIPPED=$(grep -oP '(?<=Skipped: )\d+' test-results.txt || echo 0)
+            PENDING=0
+            OTHER=0
+            FLAKY=0
+            TOTAL=$((PASSED + FAILED + SKIPPED + PENDING + OTHER + FLAKY))
+            DURATION="00:00:$(grep -oP '(?<=Time: )\d+' test-results.txt || echo 10)"
+        
+            echo "TEST_SUMMARY=Tests: $TOTAL, Passed: $PASSED, Failed: $FAILED, Skipped: $SKIPPED, Pending: $PENDING, Other: $OTHER, Flaky: $FLAKY, Duration: $DURATION" >> $GITHUB_ENV
+        
       - name: Comment test results on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v6

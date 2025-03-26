@@ -31,11 +31,25 @@ jobs:
           vendor/bin/phpunit --coverage-clover build/logs/clover.xml
         continue-on-error: true # Permite que o job continue mesmo se os testes falharem
 
-      - name: Post test results to PR
-        if: failure() || success()
-        run: |
-          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
-          vendor/bin/phpunit --coverage-text --colors=never >> $GITHUB_STEP_SUMMARY
+      - name: Post test results as a comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const testResults = fs.readFileSync('build/logs/clover.xml', 'utf8');
+            const commentBody = `
+### Test Results
+\`\`\`
+${testResults}
+\`\`\`
+            `;
+            github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: commentBody
+            });
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3

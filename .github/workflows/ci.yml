@@ -19,7 +19,7 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.0' # Specify the PHP version you want to use
+          php-version: '8.0'
 
       - name: Install dependencies
         run: composer install
@@ -27,6 +27,11 @@ jobs:
       - name: Run tests
         run: vendor/bin/phpunit src/tests/ExampleTest.php
 
+      - name: Run PHPStan Security Scan
+        run: |
+          composer require --dev phpstan/phpstan
+          vendor/bin/phpstan analyse src --level=max
+
       - name: Notify success
         if: success()
-        run: echo "All tests passed!"
+        run: echo "All tests passed and security scan completed!"

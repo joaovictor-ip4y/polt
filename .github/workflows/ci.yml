@@ -25,12 +25,12 @@ jobs:
       - name: Install dependencies
         run: composer install
 
-tests:
-  needs: build
-  runs-on: ubuntu-latest
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+  tests:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
       - name: Run tests with coverage
         run: |
@@ -40,16 +40,16 @@ tests:
       - name: Parse test results
         run: |
           PASSED=$(grep -oP '(?<=OK \()\d+(?=\))' test-results.txt || echo 0)
-           FAILED=$(grep -oP '(?<=Failures: )\d+' test-results.txt || echo 0)
-             SKIPPED=$(grep -oP '(?<=Skipped: )\d+' test-results.txt || echo 0)
-            PENDING=0
-            OTHER=0
-            FLAKY=0
-            TOTAL=$((PASSED + FAILED + SKIPPED + PENDING + OTHER + FLAKY))
-            DURATION="00:00:$(grep -oP '(?<=Time: )\d+' test-results.txt || echo 10)"
+          FAILED=$(grep -oP '(?<=Failures: )\d+' test-results.txt || echo 0)
+          SKIPPED=$(grep -oP '(?<=Skipped: )\d+' test-results.txt || echo 0)
+          PENDING=0
+          OTHER=0
+          FLAKY=0
+          TOTAL=$((PASSED + FAILED + SKIPPED + PENDING + OTHER + FLAKY))
+          DURATION="00:00:$(grep -oP '(?<=Time: )\d+' test-results.txt || echo 10)"
         
-            echo "TEST_SUMMARY=Tests: $TOTAL, Passed: $PASSED, Failed: $FAILED, Skipped: $SKIPPED, Pending: $PENDING, Other: $OTHER, Flaky: $FLAKY, Duration: $DURATION" >> $GITHUB_ENV
-        
+          echo "TEST_SUMMARY=Tests: $TOTAL, Passed: $PASSED, Failed: $FAILED, Skipped: $SKIPPED, Pending: $PENDING, Other: $OTHER, Flaky: $FLAKY, Duration: $DURATION" >> $GITHUB_ENV
+
       - name: Comment test results on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
@@ -69,7 +69,7 @@ tests:
 
   cd:
     name: Continuous Delivery
-    needs: ci
+    needs: tests
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 

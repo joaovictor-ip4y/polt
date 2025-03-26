@@ -28,41 +28,39 @@ jobs:
       - name: Run tests with coverage
         run: |
           mkdir -p build/logs
-          vendor/bin/phpunit --coverage-clover build/logs/clover.xml
-
-      - name: Debug coverage file
-        run: cat build/logs/clover.xml || echo "Arquivo clover.xml não encontrado ou está vazio."
+          vendor/bin/phpunit --coverage-clover build/logs/clover.xml | tee test-results.txt
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: build/logs/clover.xml
           flags: unittests
           name: code-coverage-report
-          fail_ci_if_error: true
-          verbose: true
 
-      - name: Post Codecov results as a comment on PR
+      - name: Comment test results on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const codecovUrl = `https://app.codecov.io/gh/${context.repo.owner}/${context.repo.repo}`;
-            const commentBody = `### 📊 Code Coverage Report  
-            ✅ Relatório de cobertura disponível em: [Codecov](${codecovUrl})`;
+            const fs = require('fs');
+            const testResults = fs.readFileSync('test-results.txt', 'utf8');
+            
             github.rest.issues.createComment({
-              issue_number: context.payload.pull_request.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: commentBody
-            });
+              issue_number: context.payload.pull_request.number,
+              body: `### Test Results :white_check_mark:\n\n\`\`\`
+              ${testResults}
+              \`\`\``
+                        });
 
   cd:
     name: Continuous Delivery
-    needs: ci
+    needs: ci # Só executa se o job 'ci' for bem-sucedido
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' # Executa apenas na branch 'main'
 
     steps:
       - name: Checkout code

@@ -1,42 +1,121 @@
-name: Continuous Delivery
+name: Pipeline
 
 on:
-  push:
-    branches:
-      - main
+  pull_request:
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04
+  tests:
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Set up PHP
+      - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.0' # Specify the PHP version you want to use
+          php-version: '8.3'
+          extensions: xdebug
+
+      - name: Make .env
+        run: echo "" > .env
+
+      - name: Set Environment Variables in .env
+        run: |
+          echo "APP_NAME=ContaDigitalDinariFront" >> .env
+          echo "APP_ENV=local" >> .env
+          echo "APP_KEY=" >> .env
+          echo "APP_DEBUG=true" >> .env
+          echo "APP_PORT=8000" >> .env
+          echo "APP_URL=http://localhost:8000" >> .env
+          echo "ENDPOINT_TO_BACK=http://localhost:8001/api/" >> .env
+          echo "LOG_CHANNEL=stack" >> .env
+          echo "LOG_LEVEL=debug" >> .env
+          echo "GOOGLE_RECAPTCHA_KEY=6Lei3ekUAAAAAEGpq-8PD7_5FF1i69cJmg04qFwG" >> .env
+          echo "SAIL_XDEBUG_MODE=develop,debug" >> .env
+          echo "SAIL_XDEBUG_CONFIG='start_with_request=yes client_host=host.docker.internal idekey=VSCODE log_level=0'" >> .env
+          echo "WWWUSER=1000" >> .env
+          echo "WWWGROUP=1000" >> .env
+          echo "THREAT_METRIX_ORG_ID=" >> .env
+          echo "DB_CONNECTION=sqlite" >> .env
 
       - name: Install dependencies
-        run: composer install
+        run: composer install --prefer-dist --no-progress --no-interaction
 
-      - name: Build Docker image
-        run: |
-          docker build -t my-php-app .
+      - name: Generate key
+        run: php artisan key:generate
 
-      - name: Docker login
-        run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-        # Este passo garante que o login no Docker foi realizado com sucesso
+      - name: Directory Permissions
+        run: chmod -R 777 storage bootstrap/cache
 
-      - name: Tag and Push Docker image
+      - name: Create Database
         run: |
-          docker tag my-php-app ${{ secrets.DOCKER_USERNAME }}/my-php-app:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/my-php-app:latest
-        # O nome do repositório Docker precisa ser ${{ secrets.DOCKER_USERNAME }}/my-php-app (se for no Docker Hub)
+          mkdir -p database
+          touch database/database.sqlite
 
-      - name: Deploy
+      - name: Run PHPUnit tests with coverage
+        run: vendor/bin/phpunit --coverage-clover=coverage.xml --log-junit=junit.xml
+
+      - name: Extract coverage
+        id: coverage_check
         run: |
-          # Add your deployment commands here
-          echo "Deploying the application..."
+          COVERAGE=$(php -r "
+              libxml_use_internal_errors(true);
+              \$xml = simplexml_load_file('coverage.xml');
+              if (\$xml === false) {
+                  echo 'Erro ao carregar o arquivo coverage.xml';
+                  exit(1);
+              }
+              \$coverage = (\$xml->project->metrics['coveredelements'] / \$xml->project->metrics['elements']) * 100;
+              echo round(\$coverage, 2);
+          ")
+          echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
+          echo "Cobertura calculada: $COVERAGE%"
+
+      - name: Parse junit.xml
+        id: parse_junit
+        run: |
+          TESTS=$(php -r "
+              \$xml = simplexml_load_file('junit.xml');
+              echo (int) \$xml->testsuite['tests'];
+          ")
+          FAILURES=$(php -r "
+              \$xml = simplexml_load_file('junit.xml');
+              echo (int) \$xml->testsuite['failures'];
+          ")
+          SKIPPED=$(php -r "
+              \$xml = simplexml_load_file('junit.xml');
+              echo (int) \$xml->testsuite['skipped'];
+          ")
+          TIME=$(php -r "
+              \$xml = simplexml_load_file('junit.xml');
+              echo (float) \$xml->testsuite['time'];
+          ")
+
+          echo "total_tests=$TESTS" >> $GITHUB_ENV
+          echo "failures=$FAILURES" >> $GITHUB_ENV
+          echo "skipped=$SKIPPED" >> $GITHUB_ENV
+          echo "execution_time=$TIME" >> $GITHUB_ENV
+
+      - name: Post test results
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          repository: ${{ github.repository }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ### PHPUnit Test Coverage Report 
+
+            - **Total Coverage:** ${{ env.COVERAGE }}%
+            - **Total Tests:** ${{ env.total_tests }}
+            - **Failures:** ${{ env.failures }}
+            - **Skipped:** ${{ env.skipped }}
+            - **Execution Time:** ${{ env.execution_time }} seconds
+
+      - name: Validate test failures
+        if: always() 
+        run: |
+          if [ ${{ env.failures }} -gt 0 ]; then
+              echo "Existem falhas nos testes: ${{ env.failures }}"
+              exit 1
+          fi

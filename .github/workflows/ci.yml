@@ -26,8 +26,10 @@ jobs:
         run: composer install
 
   tests:
+    name: Run Tests
     needs: build
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -39,6 +41,7 @@ jobs:
 
       - name: Parse test results
         run: |
+          set -x
           PASSED=$(grep -oP '(?<=OK \()\d+(?=\))' test-results.txt || echo 0)
           FAILED=$(grep -oP '(?<=Failures: )\d+' test-results.txt || echo 0)
           SKIPPED=$(grep -oP '(?<=Skipped: )\d+' test-results.txt || echo 0)
@@ -47,8 +50,15 @@ jobs:
           FLAKY=0
           TOTAL=$((PASSED + FAILED + SKIPPED + PENDING + OTHER + FLAKY))
           DURATION="00:00:$(grep -oP '(?<=Time: )\d+' test-results.txt || echo 10)"
-        
-          echo "TEST_SUMMARY=Tests: $TOTAL, Passed: $PASSED, Failed: $FAILED, Skipped: $SKIPPED, Pending: $PENDING, Other: $OTHER, Flaky: $FLAKY, Duration: $DURATION" >> $GITHUB_ENV
+
+          echo "PASSED=$PASSED" >> $GITHUB_ENV
+          echo "FAILED=$FAILED" >> $GITHUB_ENV
+          echo "SKIPPED=$SKIPPED" >> $GITHUB_ENV
+          echo "PENDING=$PENDING" >> $GITHUB_ENV
+          echo "OTHER=$OTHER" >> $GITHUB_ENV
+          echo "FLAKY=$FLAKY" >> $GITHUB_ENV
+          echo "TOTAL=$TOTAL" >> $GITHUB_ENV
+          echo "DURATION=$DURATION" >> $GITHUB_ENV
 
       - name: Comment test results on PR
         if: github.event_name == 'pull_request'
@@ -56,15 +66,25 @@ jobs:
         with:
           github-token: ${{ secrets.PAT_TOKEN }}
           script: |
-            const summary = process.env.TEST_SUMMARY;
-            const runId = context.runId;
-            const prNumber = context.payload.pull_request.number;
+            const summary = `
+            ### 🛠 Test Results - 🚀 [Run #${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            **📊 Test Summary**
+            - ✅ **Passed:** ${{ env.PASSED }}
+            - ❌ **Failed:** ${{ env.FAILED }}
+            - ⚠️ **Skipped:** ${{ env.SKIPPED }}
+            - ⏳ **Pending:** ${{ env.PENDING }}
+            - 🔄 **Other:** ${{ env.OTHER }}
+            - 🔀 **Flaky:** ${{ env.FLAKY }}
+            - 🔢 **Total Tests:** ${{ env.TOTAL }}
+            - ⏱ **Duration:** ${{ env.DURATION }}
+            `;
 
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: prNumber,
-              body: `### Test Summary - [Run #${runId}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}) 🚀\n\n${summary}`
+              issue_number: context.payload.pull_request.number,
+              body: summary
             });
 
   cd:

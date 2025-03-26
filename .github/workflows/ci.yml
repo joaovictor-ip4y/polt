@@ -121,7 +121,7 @@ jobs:
 
   cd:
     name: Continuous Delivery
-    needs: tests, security
+    needs: [tests, security]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 

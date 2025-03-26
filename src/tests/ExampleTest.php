@@ -8,7 +8,7 @@ class ExampleTest extends TestCase
 {
     public function testBasicFunctionality(): void
     {
-        $value = true; // Exemplo de lógica para teste
-        $this->assertTrue($value, 'O valor deve ser verdadeiro.');
+        $value = 2 + 2; // Exemplo de lógica para teste
+        $this->assertTrue($value === 4, 'O valor deve ser igual a 4.');
     }
 }

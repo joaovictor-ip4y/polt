@@ -30,11 +30,11 @@ jobs:
           mkdir -p build/logs
           vendor/bin/phpunit --coverage-clover build/logs/clover.xml | tee test-results.txt
 
-          - name: Parse test results
-          run: |
-            PASSED=$(grep -oP '(?<=OK \()\d+(?=\))' test-results.txt || echo 0)
-            FAILED=$(grep -oP '(?<=Failures: )\d+' test-results.txt || echo 0)
-            SKIPPED=$(grep -oP '(?<=Skipped: )\d+' test-results.txt || echo 0)
+      - name: Parse test results
+        run: |
+          PASSED=$(grep -oP '(?<=OK \()\d+(?=\))' test-results.txt || echo 0)
+           FAILED=$(grep -oP '(?<=Failures: )\d+' test-results.txt || echo 0)
+             SKIPPED=$(grep -oP '(?<=Skipped: )\d+' test-results.txt || echo 0)
             PENDING=0
             OTHER=0
             FLAKY=0

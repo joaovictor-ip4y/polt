@@ -30,37 +30,46 @@ jobs:
           mkdir -p build/logs
           vendor/bin/phpunit --coverage-clover build/logs/clover.xml | tee test-results.txt
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: build/logs/clover.xml
-          flags: unittests
-          name: code-coverage-report
+      - name: Parse test results
+        run: |
+          PASSED=$(grep -oP '(?<=OK \()\d+(?=\))' test-results.txt || echo 0)
+          FAILED=$(grep -oP '(?<=Failures: )\d+' test-results.txt || echo 0)
+          SKIPPED=$(grep -oP '(?<=Skipped: )\d+' test-results.txt || echo 0)
+          PENDING=0
+          OTHER=0
+          FLAKY=0
+          TOTAL=$((PASSED + FAILED + SKIPPED + PENDING + OTHER + FLAKY))
+          DURATION="00:00:$(grep -oP '(?<=Time: )\d+' test-results.txt || echo 10)"
+
+          echo "TEST_SUMMARY=| Tests |   Passed |   Failed |   Skipped |   Pending |   Other |   Flaky |   Duration |
+          |--------|---------|--------|---------|---------|------|------|----------|
+          | $TOTAL | $PASSED | $FAILED | $SKIPPED | $PENDING | $OTHER | $FLAKY | $DURATION |
+
+          $(if [[ $FAILED -gt 0 ]]; then echo '  **Some tests failed!**'; else echo '  **All tests passed!**'; fi)
+          " >> $GITHUB_ENV
 
       - name: Comment test results on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.PAT_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const fs = require('fs');
-            const testResults = fs.readFileSync('test-results.txt', 'utf8');
-            
+            const summary = process.env.TEST_SUMMARY;
+            const runId = context.runId;
+            const prNumber = context.payload.pull_request.number;
+
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-              body: `### Test Results :white_check_mark:\n\n\`\`\`
-              ${testResults}
-              \`\`\``
-                        });
+              issue_number: prNumber,
+              body: `### Test Summary - [Run #${runId}](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}) 🚀\n\n${summary}`
+            });
 
   cd:
     name: Continuous Delivery
-    needs: ci # Só executa se o job 'ci' for bem-sucedido
+    needs: ci
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' # Executa apenas na branch 'main'
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout code

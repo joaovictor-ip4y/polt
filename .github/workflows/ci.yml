@@ -30,14 +30,18 @@ jobs:
           mkdir -p build/logs
           vendor/bin/phpunit --coverage-clover build/logs/clover.xml
 
+      - name: Debug coverage file
+        run: cat build/logs/clover.xml || echo "Arquivo clover.xml não encontrado ou está vazio."
+
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: build/logs/clover.xml
           flags: unittests
           name: code-coverage-report
-          fail_ci_if_error: true # Falha se houver erro no upload
+          fail_ci_if_error: true
+          verbose: true
 
       - name: Post Codecov results as a comment on PR
         if: github.event_name == 'pull_request'

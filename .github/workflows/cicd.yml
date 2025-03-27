@@ -21,7 +21,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.0'
-          extensions: xdebug  # Ativando Xdebug para cobertura
+          extensions: xdebug  
 
       - name: Install dependencies
         run: composer install
@@ -138,7 +138,7 @@ jobs:
     name: Continuous Delivery
     needs: [tests, security]
     runs-on: ubuntu-latest
-    environment: production  # Defina o ambiente com proteção de aprovação
+    environment: production 
 
     steps:
       - name: Checkout code

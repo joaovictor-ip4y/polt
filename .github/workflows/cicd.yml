@@ -141,12 +141,3 @@ jobs:
           docker tag my-php-app ${{ secrets.DOCKER_USERNAME }}/my-php-app:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/my-php-app:latest
 
-      - name: Deploy
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-            cd /caminho/do/projeto/no/servidor
-            git pull origin main
-            composer install --no-dev --optimize-autoloader
-            docker-compose down
-            docker-compose up -d --build
-          EOF

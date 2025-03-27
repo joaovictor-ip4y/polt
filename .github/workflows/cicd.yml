@@ -17,12 +17,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up PHP with Xdebug
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.0'
-          extensions: xdebug  # Ativando Xdebug para cobertura
-
       - name: Install dependencies
         run: composer install
 
@@ -53,6 +47,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Set up PHP with Xdebug
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.0'
+          extensions: xdebug  
+
       - name: Verificar se o Xdebug está ativo
         run: php -m | grep xdebug || echo "Xdebug NÃO encontrado!"
 
@@ -62,7 +62,6 @@ jobs:
       - name: Run PHPUnit tests with coverage
         run: |
           vendor/bin/phpunit --coverage-clover=coverage.xml --log-junit=junit.xml || echo "Erro ao executar PHPUnit!"
-
       - name: Verificar se coverage.xml foi gerado
         run: ls -lah coverage.xml || echo "coverage.xml NÃO foi gerado!"
 
@@ -84,7 +83,7 @@ jobs:
           fi
           echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
           echo "Cobertura calculada: $COVERAGE%"
-
+          
       - name: Parse junit.xml
         id: parse_junit
         run: |
@@ -104,7 +103,6 @@ jobs:
               \$xml = simplexml_load_file('junit.xml');
               echo (float) (\$xml ? \$xml->testsuite['time'] : 0);
           ")
-
           echo "total_tests=$TESTS" >> $GITHUB_ENV
           echo "failures=$FAILURES" >> $GITHUB_ENV
           echo "skipped=$SKIPPED" >> $GITHUB_ENV
@@ -119,7 +117,6 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             ### PHPUnit Test Coverage Report
-
             - **Total Coverage:** ${{ env.COVERAGE }}%
             - **Total Tests:** ${{ env.total_tests }}
             - **Failures:** ${{ env.failures }}
@@ -138,7 +135,8 @@ jobs:
     name: Continuous Delivery
     needs: [tests, security]
     runs-on: ubuntu-latest
-    environment: production  # Defina o ambiente com proteção de aprovação
+    environment: production 
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout code

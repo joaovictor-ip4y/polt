@@ -3,7 +3,7 @@
         'name' => 'joaovictor/polt',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '58a744135ccbeeb936a0c5a6e0103a9dd14ea9e1',
+        'reference' => '9cfc4b7696db3a47b6a4ba0c0e3e8929cd4ba5e4',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -22,7 +22,7 @@
         'joaovictor/polt' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '58a744135ccbeeb936a0c5a6e0103a9dd14ea9e1',
+            'reference' => '9cfc4b7696db3a47b6a4ba0c0e3e8929cd4ba5e4',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

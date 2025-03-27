@@ -52,6 +52,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      
+      - name: Set up PHP with Xdebug
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.0'
+          extensions: xdebug  # Ativando Xdebug para cobertura
 
       - name: Verificar se o Xdebug está ativo
         run: php -m | grep xdebug || echo "Xdebug NÃO encontrado!"

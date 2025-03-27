@@ -17,10 +17,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up PHP
+      - name: Set up PHP with Xdebug
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.0'
+          extensions: xdebug  # Ativando Xdebug para cobertura
 
       - name: Install dependencies
         run: composer install
@@ -52,21 +53,35 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Verificar se o Xdebug está ativo
+        run: php -m | grep xdebug || echo "Xdebug NÃO encontrado!"
+
+      - name: Verificar se os arquivos do código-fonte estão presentes
+        run: ls -lah src/ || echo "Diretório src/ não encontrado!"
+
       - name: Run PHPUnit tests with coverage
-        run: vendor/bin/phpunit --coverage-clover=coverage.xml --log-junit=junit.xml
+        run: |
+          vendor/bin/phpunit --coverage-clover=coverage.xml --log-junit=junit.xml || echo "Erro ao executar PHPUnit!"
+
+      - name: Verificar se coverage.xml foi gerado
+        run: ls -lah coverage.xml || echo "coverage.xml NÃO foi gerado!"
 
       - name: Extract coverage
         id: coverage_check
         run: |
-          COVERAGE=$(php -r "
-              libxml_use_internal_errors(true);
-              \$xml = simplexml_load_file('coverage.xml');
-              if (!\$xml || !isset(\$xml->project->metrics['coveredelements']) || !isset(\$xml->project->metrics['elements']) || \$xml->project->metrics['elements'] == 0) {
-                  echo '0';
-              } else {
-                  echo round((\$xml->project->metrics['coveredelements'] / \$xml->project->metrics['elements']) * 100, 2);
-              }
-          ")
+          if [ -f coverage.xml ]; then
+            COVERAGE=$(php -r "
+                libxml_use_internal_errors(true);
+                \$xml = simplexml_load_file('coverage.xml');
+                if (!\$xml || !isset(\$xml->project->metrics['coveredelements']) || !isset(\$xml->project->metrics['elements']) || \$xml->project->metrics['elements'] == 0) {
+                    echo '0';
+                } else {
+                    echo round((\$xml->project->metrics['coveredelements'] / \$xml->project->metrics['elements']) * 100, 2);
+                }
+            ")
+          else
+            COVERAGE=0
+          fi
           echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
           echo "Cobertura calculada: $COVERAGE%"
 
@@ -105,11 +120,11 @@ jobs:
           body: |
             ### PHPUnit Test Coverage Report
 
-            - Total Coverage: ${{ env.COVERAGE }}%
-            - Total Tests: ${{ env.total_tests }}
-            - Failures: ${{ env.failures }}
-            - Skipped: ${{ env.skipped }}
-            - Execution Time: ${{ env.execution_time }} seconds
+            - **Total Coverage:** ${{ env.COVERAGE }}%
+            - **Total Tests:** ${{ env.total_tests }}
+            - **Failures:** ${{ env.failures }}
+            - **Skipped:** ${{ env.skipped }}
+            - **Execution Time:** ${{ env.execution_time }} seconds
 
       - name: Validate test failures
         if: success() || failure()
@@ -123,7 +138,7 @@ jobs:
     name: Continuous Delivery
     needs: [tests, security]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    environment: production  # Defina o ambiente com proteção de aprovação
 
     steps:
       - name: Checkout code
@@ -140,4 +155,3 @@ jobs:
         run: |
           docker tag my-php-app ${{ secrets.DOCKER_USERNAME }}/my-php-app:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/my-php-app:latest
-

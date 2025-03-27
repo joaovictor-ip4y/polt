@@ -21,7 +21,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.0'
-          extensions: xdebug  # Ativando Xdebug para cobertura
+          extensions: xdebug  
 
       - name: Install dependencies
         run: composer install
@@ -110,15 +110,6 @@ jobs:
           echo "skipped=$SKIPPED" >> $GITHUB_ENV
           echo "execution_time=$TIME" >> $GITHUB_ENV
 
-      - name: Post results in Actions logs
-        run: |
-          echo "### PHPUnit Test Coverage Report"
-          echo "- **Total Coverage:** ${{ env.COVERAGE }}%"
-          echo "- **Total Tests:** ${{ env.total_tests }}"
-          echo "- **Failures:** ${{ env.failures }}"
-          echo "- **Skipped:** ${{ env.skipped }}"
-          echo "- **Execution Time:** ${{ env.execution_time }} seconds"
-
       - name: Post test results
         if: github.event_name == 'pull_request'
         uses: peter-evans/create-or-update-comment@v2
@@ -147,7 +138,7 @@ jobs:
     name: Continuous Delivery
     needs: [tests, security]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    environment: production  
 
     steps:
       - name: Checkout code

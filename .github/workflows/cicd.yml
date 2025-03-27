@@ -17,13 +17,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up PHP
+      - name: Set up PHP with Xdebug
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.0'
+          coverage: xdebug  # Ativa Xdebug para cobertura de código
 
       - name: Install dependencies
-        run: composer install
+        run: composer install --prefer-dist --no-progress --no-suggest
 
   security:
     name: Security Scan
@@ -52,8 +53,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+
       - name: Run PHPUnit tests with coverage
         run: vendor/bin/phpunit --coverage-clover=coverage.xml --log-junit=junit.xml
+
+      - name: Debug Coverage XML
+        run: |
+          if [ -f coverage.xml ]; then
+            echo "O arquivo coverage.xml foi gerado com sucesso!"
+            cat coverage.xml | head -n 20  # Exibe as primeiras linhas para debug
+          else
+            echo "ERRO: O arquivo coverage.xml NÃO foi gerado!"
+            exit 1
+          fi
 
       - name: Extract coverage
         id: coverage_check
@@ -140,4 +154,3 @@ jobs:
         run: |
           docker tag my-php-app ${{ secrets.DOCKER_USERNAME }}/my-php-app:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/my-php-app:latest
-

@@ -110,6 +110,15 @@ jobs:
           echo "skipped=$SKIPPED" >> $GITHUB_ENV
           echo "execution_time=$TIME" >> $GITHUB_ENV
 
+      - name: Post results in Actions logs
+        run: |
+          echo "### PHPUnit Test Coverage Report"
+          echo "- **Total Coverage:** ${{ env.COVERAGE }}%"
+          echo "- **Total Tests:** ${{ env.total_tests }}"
+          echo "- **Failures:** ${{ env.failures }}"
+          echo "- **Skipped:** ${{ env.skipped }}"
+          echo "- **Execution Time:** ${{ env.execution_time }} seconds"
+
       - name: Post test results
         if: github.event_name == 'pull_request'
         uses: peter-evans/create-or-update-comment@v2
@@ -126,41 +135,6 @@ jobs:
             - **Skipped:** ${{ env.skipped }}
             - **Execution Time:** ${{ env.execution_time }} seconds
 
-      - name: Post results to Actions page
-        if: success() || failure()
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const coverage = "${{ env.COVERAGE }}";
-            const totalTests = "${{ env.total_tests }}";
-            const failures = "${{ env.failures }}";
-            const skipped = "${{ env.skipped }}";
-            const executionTime = "${{ env.execution_time }}";
-            
-            const comment = `
-              ### PHPUnit Test Coverage Report (GitHub Actions)
-              
-              - **Total Coverage:** ${coverage}%
-              - **Total Tests:** ${totalTests}
-              - **Failures:** ${failures}
-              - **Skipped:** ${skipped}
-              - **Execution Time:** ${executionTime} seconds
-            `;
-            
-            github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: context.workflow,
-              ref: context.ref,
-              inputs: {
-                coverage: coverage,
-                total_tests: totalTests,
-                failures: failures,
-                skipped: skipped,
-                execution_time: executionTime
-              }
-            });
-          
       - name: Validate test failures
         if: success() || failure()
         run: |

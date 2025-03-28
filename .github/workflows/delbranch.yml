@@ -13,9 +13,9 @@ jobs:
         uses: actions/checkout@v3
         
       - name: Delete branch after merge (except main and dev)
-        if: github.event.pull_request.merged == true && github.event.pull_request.base.ref != 'main' && github.event.pull_request.base.ref != 'dev'
+        if: github.event.pull_request.merged == true && github.head_ref != 'main' && github.head_ref != 'dev'
         run: |
-          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          BRANCH_NAME=${GITHUB_HEAD_REF}
           echo "Deleting branch: $BRANCH_NAME"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"

@@ -1,0 +1,20 @@
+name: Delete Branch After Merge
+
+on:
+  push:
+    branches:
+      - '**'  # Garante que o evento de push em qualquer branch seja escutado
+
+jobs:
+  delete_branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+        
+      - name: Delete branch after merge (except main and dev)
+        if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev'
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          echo "Deleting branch: $BRANCH_NAME"
+          git push origin --delete $BRANCH_NAME

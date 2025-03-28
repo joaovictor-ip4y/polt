@@ -83,7 +83,7 @@ jobs:
           fi
           echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
           echo "Cobertura calculada: $COVERAGE%"
-          
+
       - name: Parse junit.xml
         id: parse_junit
         run: |
@@ -129,6 +129,20 @@ jobs:
           if [ ${{ env.failures }} -gt 0 ]; then
               echo "Existem falhas nos testes: ${{ env.failures }}"
               exit 1
+          fi
+
+  prevent_main_dev_deletion:
+    name: Prevent Deletion of Main and Dev Branches
+    runs-on: ubuntu-latest
+    needs: [tests, security]  # Isso garante que a verificação só será feita após a execução de "tests" e "security"
+    steps:
+      - name: Check if deleted branch is main or dev
+        run: |
+          if [[ "$GITHUB_REF" == "refs/heads/main" || "$GITHUB_REF" == "refs/heads/dev" ]]; then
+            echo "Error: Deletion of 'main' or 'dev' branch is not allowed!"
+            exit 1;  # Interrompe o workflow se for main ou dev
+          else
+            echo "Branch deleted: $GITHUB_REF"
           fi
 
   cd:

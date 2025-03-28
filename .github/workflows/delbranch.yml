@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Check out the repository
         uses: actions/checkout@v3
-        
+
       - name: Delete branch after merge (except main and dev)
         if: github.event.pull_request.merged == true && github.head_ref != 'main' && github.head_ref != 'dev'
         run: |
@@ -19,5 +19,9 @@ jobs:
           echo "Deleting branch: $BRANCH_NAME"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Usando o token PAT_TOKEN para autenticação no git remote URL
           git remote set-url origin https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git
+          
+          # Tentando excluir a branch
           git push origin --delete $BRANCH_NAME

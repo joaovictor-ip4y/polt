@@ -1,9 +1,9 @@
 name: Delete Branch After Merge
 
 on:
-  push:
-    branches:
-      - '**'  # Garante que o evento de push em qualquer branch seja escutado
+  pull_request:
+    types:
+      - closed
 
 jobs:
   delete_branch:
@@ -13,8 +13,11 @@ jobs:
         uses: actions/checkout@v3
         
       - name: Delete branch after merge (except main and dev)
-        if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev'
+        if: github.event.pull_request.merged == true && github.event.pull_request.base.ref != 'main' && github.event.pull_request.base.ref != 'dev'
         run: |
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
           echo "Deleting branch: $BRANCH_NAME"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
           git push origin --delete $BRANCH_NAME

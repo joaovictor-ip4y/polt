@@ -3,7 +3,8 @@ name: Deploy com Dupla Aprovação
 on:
   push:
     branches:
-      
+      - main
+      - "hotfix/*"  # Permitir deploy de branches hotfix
 
 jobs:
   check-user:
@@ -16,12 +17,12 @@ jobs:
         run: |
           ADMINS="joaovictor-ip4y outro-admin" # Lista de admins
           if echo "$ADMINS" | grep -w "$GITHUB_ACTOR"; then
-            echo "is_admin=true" >> $GITHUB_ENV
-            echo "::set-output name=is_admin::true"
+            echo "is_admin=true" >> "$GITHUB_ENV"
           else
-            echo "is_admin=false" >> $GITHUB_ENV
-            echo "::set-output name=is_admin::false"
+            echo "is_admin=false" >> "$GITHUB_ENV"
           fi
+      - name: Salvar saída
+        run: echo "is_admin=${{ env.is_admin }}" >> "$GITHUB_OUTPUT"
 
   request-first-approval:
     needs: check-user
@@ -30,7 +31,7 @@ jobs:
     environment:
       name: Primeira-Aprovacao
     outputs:
-      approver: ${{ github.actor }}  # Captura quem aprovou
+      approver: ${{ github.actor }}
     steps:
       - name: Aguardando primeira aprovação
         run: echo "Primeira aprovação concedida por $GITHUB_ACTOR"

@@ -4,8 +4,7 @@ on:
   push:
     branches:
       - main
-      - "hotfix/*"  # Permitir deploy de branches hotfix
-
+     
 jobs:
   check-user:
     runs-on: ubuntu-latest
@@ -18,11 +17,11 @@ jobs:
           ADMINS="joaovictor-ip4y outro-admin" # Lista de admins
           if echo "$ADMINS" | grep -w "$GITHUB_ACTOR"; then
             echo "is_admin=true" >> "$GITHUB_ENV"
+            echo "is_admin=true" >> "$GITHUB_OUTPUT"
           else
             echo "is_admin=false" >> "$GITHUB_ENV"
+            echo "is_admin=false" >> "$GITHUB_OUTPUT"
           fi
-      - name: Salvar saída
-        run: echo "is_admin=${{ env.is_admin }}" >> "$GITHUB_OUTPUT"
 
   request-first-approval:
     needs: check-user
@@ -39,7 +38,7 @@ jobs:
   request-second-approval:
     needs: request-first-approval
     runs-on: ubuntu-latest
-    if: needs.request-first-approval.outputs.approver != 'joaovictor-ip4y' && needs.request-first-approval.outputs.approver != 'outro-admin'
+    if: ${{ needs.request-first-approval.outputs.approver != 'joaovictor-ip4y' && needs.request-first-approval.outputs.approver != 'outro-admin' }}
     environment:
       name: Segunda-Aprovacao
     steps:
@@ -47,8 +46,8 @@ jobs:
         run: echo "Segunda aprovação necessária..."
 
   deploy:
-    needs: [check-user, request-second-approval]
-    if: needs.check-user.outputs.is_admin == 'true' || success()
+    needs: [check-user, request-first-approval, request-second-approval]
+    if: ${{ needs.check-user.outputs.is_admin == 'true' || (needs.request-first-approval.outputs.approver != 'joaovictor-ip4y' && needs.request-first-approval.outputs.approver != 'outro-admin' && success()) }}
     runs-on: ubuntu-latest
     environment:
       name: Production

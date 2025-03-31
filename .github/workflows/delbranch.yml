@@ -35,8 +35,6 @@ jobs:
   deploy:
     needs: [request-first-approval, request-second-approval]
     runs-on: ubuntu-latest
-    environment:
-      name: Production
     steps:
       - name: Executar Deploy
         run: echo "Deploy realizado!"

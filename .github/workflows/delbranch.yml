@@ -4,28 +4,9 @@ on:
   push:
     branches:
       - main
-     
-jobs:
-  check-user:
-    runs-on: ubuntu-latest
-    outputs:
-      is_admin: ${{ steps.check.outputs.is_admin }}
-    steps:
-      - name: Verificar se usuário é administrador
-        id: check
-        run: |
-          ADMINS="joaovictor-ip4y outro-admin" # Lista de admins
-          if echo "$ADMINS" | grep -w "$GITHUB_ACTOR"; then
-            echo "is_admin=true" >> "$GITHUB_ENV"
-            echo "is_admin=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "is_admin=false" >> "$GITHUB_ENV"
-            echo "is_admin=false" >> "$GITHUB_OUTPUT"
-          fi
 
+jobs:
   request-first-approval:
-    needs: check-user
-    if: needs.check-user.outputs.is_admin == 'false'
     runs-on: ubuntu-latest
     environment:
       name: Primeira-Aprovacao
@@ -38,16 +19,15 @@ jobs:
   request-second-approval:
     needs: request-first-approval
     runs-on: ubuntu-latest
-    if: ${{ needs.request-first-approval.outputs.approver != 'joaovictor-ip4y' && needs.request-first-approval.outputs.approver != 'outro-admin' }}
+    if: always()
     environment:
       name: Segunda-Aprovacao
     steps:
       - name: Aguardando segunda aprovação
-        run: echo "Segunda aprovação necessária..."
+        run: echo "Segunda aprovação concedida por $GITHUB_ACTOR"
 
   deploy:
-    needs: [check-user, request-first-approval, request-second-approval]
-    if: ${{ needs.check-user.outputs.is_admin == 'true' || (needs.request-first-approval.outputs.approver != 'joaovictor-ip4y' && needs.request-first-approval.outputs.approver != 'outro-admin' && success()) }}
+    needs: [request-first-approval, request-second-approval]
     runs-on: ubuntu-latest
     environment:
       name: Production

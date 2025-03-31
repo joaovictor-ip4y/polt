@@ -135,6 +135,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: Primeira-Aprovacao
+    if: github.ref == 'refs/heads/main'
     outputs:
       first_approver: ${{ github.actor }}
     steps:
@@ -146,6 +147,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: Segunda-Aprovacao
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Garantir que é um segundo aprovador
         run: |

@@ -139,6 +139,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     outputs:
       first_approver: ${{ github.actor }}
+
     steps:
       - name: Aguardando primeira aprovação
         run: echo "Primeira aprovação concedida por $GITHUB_ACTOR"
@@ -149,30 +150,16 @@ jobs:
     environment:
       name: Segunda-Aprovacao
     if: github.ref == 'refs/heads/main'
+    
     steps:
-      - name: Aprovação automática se 'joaovictor-ip4y' aprovou primeiro
-        if: ${{ needs.request-first-approval.outputs.first_approver == 'joaovictor-ip4y' }}
-        run: |
-          echo "Aprovação automática concedida porque 'joaovictor-ip4y' aprovou primeiro."
-          PR_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
-          curl -X POST -H "Authorization: Bearer ${{ secrets.PAT_TOKEN }}" \
-               -H "Accept: application/vnd.github.v3+json" \
-               https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews \
-               -d '{"event":"APPROVE", "body":"Aprovação automática concedida porque 'joaovictor-ip4y' aprovou primeiro."}'
-
-
       - name: Garantir que é um segundo aprovador
-        if: ${{ needs.request-first-approval.outputs.first_approver != 'joaovictor-ip4y' }}
         run: |
-          if [[ "${{ github.actor }}" == "${{ needs.request-first-approval.outputs.first_approver }}" ]]; then
-            echo "Erro: O mesmo usuário não pode aprovar duas vezes!"
-            exit 1
-          fi
-          
+             if [[ "${{ github.actor }}" == "${{ needs.request-first-approval.outputs.first_approver }}" ]]; then
+                  echo "Erro: O mesmo usuário não pode aprovar duas vezes!"
+                  exit 1
+                fi
       - name: Aguardando segunda aprovação
-        if: ${{ needs.request-first-approval.outputs.first_approver != 'joaovictor-ip4y' }}
         run: echo "Segunda aprovação concedida por $GITHUB_ACTOR"
-
 
   cd:
     name: Continuous Delivery

@@ -146,10 +146,11 @@ jobs:
   request-second-approval:
     needs: request-first-approval
     runs-on: ubuntu-latest
-    if: ${{ needs.request-first-approval.outputs.first_approver != 'joaovictor-ip4y' }}
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      needs.request-first-approval.outputs.first_approver != 'joaovictor-ip4y'
     environment:
       name: Segunda-Aprovacao
-    if: github.ref == 'refs/heads/main'
     steps:
       - name: Garantir que é um segundo aprovador
         run: |

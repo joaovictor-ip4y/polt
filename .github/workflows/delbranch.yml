@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - "hotfix/*"  # Permitir deploy de branches hotfix
 
 jobs:
   request-first-approval:
@@ -11,7 +12,7 @@ jobs:
     environment:
       name: Primeira-Aprovacao
     outputs:
-      approver: ${{ github.actor }}
+      first_approver: ${{ github.actor }}
     steps:
       - name: Aguardando primeira aprovação
         run: echo "Primeira aprovação concedida por $GITHUB_ACTOR"
@@ -19,10 +20,15 @@ jobs:
   request-second-approval:
     needs: request-first-approval
     runs-on: ubuntu-latest
-    if: always()
     environment:
       name: Segunda-Aprovacao
     steps:
+      - name: Garantir que é um segundo aprovador
+        run: |
+          if [[ "${{ github.actor }}" == "${{ needs.request-first-approval.outputs.first_approver }}" ]]; then
+            echo "Erro: O mesmo usuário não pode aprovar duas vezes!"
+            exit 1
+          fi
       - name: Aguardando segunda aprovação
         run: echo "Segunda aprovação concedida por $GITHUB_ACTOR"
 

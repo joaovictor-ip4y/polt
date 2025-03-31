@@ -131,11 +131,38 @@ jobs:
               exit 1
           fi
 
-  cd:
-    name: Continuous Delivery
+  request-first-approval:
     needs: [tests, security]
     runs-on: ubuntu-latest
-    environment: production 
+    environment:
+      name: Primeira-Aprovacao
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      first_approver: ${{ github.actor }}
+    steps:
+      - name: Aguardando primeira aprovação
+        run: echo "Primeira aprovação concedida por $GITHUB_ACTOR"
+
+  request-second-approval:
+    needs: request-first-approval
+    runs-on: ubuntu-latest
+    environment:
+      name: Segunda-Aprovacao
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Garantir que é um segundo aprovador
+        run: |
+          if [[ "${{ github.actor }}" == "${{ needs.request-first-approval.outputs.first_approver }}" ]]; then
+            echo "Erro: O mesmo usuário não pode aprovar duas vezes!"
+            exit 1
+          fi
+      - name: Aguardando segunda aprovação
+        run: echo "Segunda aprovação concedida por $GITHUB_ACTOR"
+
+  cd:
+    name: Continuous Delivery
+    needs: [tests, security, request-first-approval, request-second-approval]
+    runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
     steps:

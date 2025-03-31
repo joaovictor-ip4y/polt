@@ -143,23 +143,36 @@ jobs:
       - name: Aguardando primeira aprovação
         run: echo "Primeira aprovação concedida por $GITHUB_ACTOR"
 
-  request-second-approval:
+ request-second-approval:
     needs: request-first-approval
     runs-on: ubuntu-latest
-    if: >-
-      github.ref == 'refs/heads/main' &&
-      needs.request-first-approval.outputs.first_approver != 'joaovictor-ip4y'
     environment:
       name: Segunda-Aprovacao
     steps:
+      - name: Aprovação automática se 'joaovictor-ip4y' aprovou primeiro
+        if: ${{ needs.request-first-approval.outputs.first_approver == 'joaovictor-ip4y' }}
+        run: echo "Aprovação automática concedida porque 'joaovictor-ip4y' aprovou primeiro."
+
       - name: Garantir que é um segundo aprovador
+        if: ${{ needs.request-first-approval.outputs.first_approver != 'joaovictor-ip4y' }}
         run: |
           if [[ "${{ github.actor }}" == "${{ needs.request-first-approval.outputs.first_approver }}" ]]; then
             echo "Erro: O mesmo usuário não pode aprovar duas vezes!"
             exit 1
           fi
+
+      - name: Verificar se está na branch main
+        if: ${{ needs.request-first-approval.outputs.first_approver != 'joaovictor-ip4y' }}
+        run: |
+          if [[ "${{ github.ref }}" != "refs/heads/main" ]]; then
+            echo "Erro: Aprovação só permitida na branch main!"
+            exit 1
+          fi
+
       - name: Aguardando segunda aprovação
+        if: ${{ needs.request-first-approval.outputs.first_approver != 'joaovictor-ip4y' }}
         run: echo "Segunda aprovação concedida por $GITHUB_ACTOR"
+
 
   cd:
     name: Continuous Delivery

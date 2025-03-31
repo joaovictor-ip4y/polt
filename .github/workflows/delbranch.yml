@@ -1,27 +1,56 @@
-name: Delete Branch After Merge
+name: Deploy com Dupla Aprovação
 
 on:
-  pull_request:
-    types:
-      - closed
+  push:
+    branches:
+      
 
 jobs:
-  delete_branch:
+  check-user:
     runs-on: ubuntu-latest
+    outputs:
+      is_admin: ${{ steps.check.outputs.is_admin }}
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v3
-
-      - name: Delete branch after merge (except main and dev)
-        if: github.event.pull_request.merged == true && github.head_ref != 'main' && github.head_ref != 'dev'
+      - name: Verificar se usuário é administrador
+        id: check
         run: |
-          BRANCH_NAME=${GITHUB_HEAD_REF}
-          echo "Deleting branch: $BRANCH_NAME"
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Usando o token PAT_TOKEN para autenticação no git remote URL
-          git remote set-url origin https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git
-          
-          # Tentando excluir a branch
-          git push origin --delete $BRANCH_NAME
+          ADMINS="joaovictor-ip4y outro-admin" # Lista de admins
+          if echo "$ADMINS" | grep -w "$GITHUB_ACTOR"; then
+            echo "is_admin=true" >> $GITHUB_ENV
+            echo "::set-output name=is_admin::true"
+          else
+            echo "is_admin=false" >> $GITHUB_ENV
+            echo "::set-output name=is_admin::false"
+          fi
+
+  request-first-approval:
+    needs: check-user
+    if: needs.check-user.outputs.is_admin == 'false'
+    runs-on: ubuntu-latest
+    environment:
+      name: Primeira-Aprovacao
+    outputs:
+      approver: ${{ github.actor }}  # Captura quem aprovou
+    steps:
+      - name: Aguardando primeira aprovação
+        run: echo "Primeira aprovação concedida por $GITHUB_ACTOR"
+
+  request-second-approval:
+    needs: request-first-approval
+    runs-on: ubuntu-latest
+    if: needs.request-first-approval.outputs.approver != 'joaovictor-ip4y' && needs.request-first-approval.outputs.approver != 'outro-admin'
+    environment:
+      name: Segunda-Aprovacao
+    steps:
+      - name: Aguardando segunda aprovação
+        run: echo "Segunda aprovação necessária..."
+
+  deploy:
+    needs: [check-user, request-second-approval]
+    if: needs.check-user.outputs.is_admin == 'true' || success()
+    runs-on: ubuntu-latest
+    environment:
+      name: Production
+    steps:
+      - name: Executar Deploy
+        run: echo "Deploy realizado!"
